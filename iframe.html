@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+</head>
+<body>
+
+<script>
+
+/* =========================================================
+   Console Bridge (DevTools style)
+========================================================= */
+
+function installConsoleBridge(){
+
+const __objectStore = new Map();
+let __objectId = 0;
+
+function storeObject(obj){
+  for(const [id,o] of __objectStore){
+    if(o===obj) return id;
+  }
+  const id="obj_"+(++__objectId);
+  __objectStore.set(id,obj);
+  return id;
+}
+
+function serializeValue(v,depth=0){
+
+  if(depth>2) return {__type:"max-depth"};
+
+  try{
+
+    if(typeof v==="function"){
+      return {
+        __type:"function",
+        name:v.name||"(anonymous)",
+        body:v.toString()
+      };
+    }
+
+    if(typeof v==="object" && v!==null){
+
+      const id=storeObject(v);
+      const props={};
+
+      for(const k of Object.getOwnPropertyNames(v).slice(0,20)){
+        try{
+          props[k]=serializeValue(v[k],depth+1);
+        }catch{
+          props[k]={__type:"unavailable"};
+        }
+      }
+
+      return {
+        __type:"object",
+        id,
+        className:v.constructor?.name||"Object",
+        props
+      };
+
+    }
+
+    return {__type:"primitive",value:v};
+
+  }catch{
+    return {__type:"unavailable"};
+  }
+
+}
+
+function getCallerLocation(){
+
+  try{
+
+    const stack=new Error().stack;
+    if(!stack) return {file:null,line:null};
+
+    const lines=stack.split("\n");
+
+    for(const line of lines){
+
+      let m=line.match(/\(?([^\s()]+):(\d+):(\d+)\)?$/);
+
+      if(!m) m=line.match(/@(.*):(\d+):(\d+)/);
+
+      if(!m) continue;
+
+      const file=m[1];
+      const lineNumber=Number(m[2]);
+
+      if(file.includes("iframe")) continue;
+
+      return {file,line:lineNumber};
+
+    }
+
+  }catch{}
+
+  return {file:null,line:null};
+
+}
+
+["log","warn","error","info","debug"].forEach(level=>{
+
+  const original=console[level];
+
+  console[level]=function(...args){
+
+    const loc=getCallerLocation();
+
+    const outArgs=args.map(v=>serializeValue(v));
+
+    parent.postMessage({
+      type:"log",
+      level,
+      args:outArgs,
+      source:loc.file,
+      line:loc.line
+    },"*");
+
+    original.apply(console,args);
+
+  };
+
+});
+
+
+/* =========================================================
+   Object inspection
+========================================================= */
+
+window.addEventListener("message",e=>{
+
+  const msg=e.data;
+
+  if(msg?.type==="inspect-object"){
+
+    const obj=__objectStore.get(msg.id);
+    if(!obj) return;
+
+    const props={};
+
+    Object.getOwnPropertyNames(obj).forEach(key=>{
+      try{
+        props[key]=serializeValue(obj[key]);
+      }catch{
+        props[key]={__type:"unavailable"};
+      }
+    });
+
+    parent.postMessage({
+      type:"object-properties",
+      id:msg.id,
+      props
+    },"*");
+
+  }
+
+});
+
+
+/* =========================================================
+   Error forwarding
+========================================================= */
+
+window.onerror=(msg,src,line,col,err)=>{
+
+  parent.postMessage({
+    type:"error",
+    message:err?.message||msg,
+    source:src||null,
+    line:line||null,
+    col:col||null,
+    stack:err?.stack||null
+  },"*");
+
+};
+
+window.onunhandledrejection=e=>{
+
+  const r=e.reason;
+
+  parent.postMessage({
+    type:"error",
+    message:r?.message||String(r),
+    stack:r?.stack||null
+  },"*");
+
+};
+
+}
+
+
+/* =========================================================
+   Parent communication
+========================================================= */
+
+parent.postMessage({type:"iframe-ready"},"*");
+
+window.addEventListener("message",e=>{
+
+  const data=e.data;
+
+  if(data?.type==="run"){
+
+    rebuildRuntime(data);
+
+  }
+
+});
+
+
+/* =========================================================
+   Rebuild runtime (fresh JS environment)
+========================================================= */
+
+function rebuildRuntime(data){
+
+  const html=data.html||"";
+  const css=data.css||"";
+  const files=data.scripts||[];
+
+  const userScripts=files.map(f=>{
+
+    if(f.src){
+      return `<script src="${f.src}"><\/script>`;
+    }
+
+    return `<script>
+${f.data||""}
+//# sourceURL=${f.name||"user"}.js
+<\/script>`;
+
+  }).join("\n");
+
+
+  const doc=`
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>${css}</style>
+</head>
+<body>
+
+${html}
+
+<script>
+(${installConsoleBridge.toString()})();
+<\/script>
+
+${userScripts}
+
+</body>
+</html>
+`;
+
+  document.open();
+  document.write(doc);
+  document.close();
+
+}
+
+</script>
+
+</body>
+</html>
