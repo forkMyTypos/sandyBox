@@ -5,14 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nu!</title>
 
-<!-- Vendor libraries (kept on CDN; Monaco lazy-loads workers from CDN anyway).
-     TODO for hard prod: add SRI integrity hashes to the three un-hashed deps. -->
+<!-- Vendor libraries (CDN). All pinned with SRI integrity hashes. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js" integrity="sha512-57oZ/vW8ANMjR/KQ6Be9v/+/h6bq9/l3f0Oc7vn6qMqyhvPd1cvKBRWWpzu0QoneImqr2SkmO4MSqU+RpHom3Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css" integrity="sha512-ELV+xyi8IhEApPS/pSj66+Jiw+sOT1Mqkzlh8ExXihe4zfqbWkxPRi8wptXIO9g73FSlhmquFlUOuMSoXz5IRw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-<script src="https://cdn.jsdelivr.net/npm/dexie@4.4.3/dist/dexie.min.js" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/loader.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/dexie@4.4.3/dist/dexie.min.js" integrity="sha384-k6tk9WcOtb4A545U/Jgfo4DoIqdwINOlzrTiSGnj9wq0LEPurSgaYGdDZokPcgLz" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/loader.js" integrity="sha384-tSPY4oVmbJKVAvy9W7NTVMqSrS/gYyJLECoFWtQ10h4qIDQTg1h3DSfF0eV2Bbbz" crossorigin="anonymous"></script>
 
 <style>
 html{font-family: Arial; overflow-x:hidden; background:#1e1e1e; background: #1c1c1c;}
@@ -557,6 +556,116 @@ var sandy = {
 		return obj;
 	}
 };
+
+
+/* ======== legal.js ======== */
+/* =========================================================
+   About & Legal — self-contained in-app panel.
+   No dependency on boss/sandy/jQuery; pure DOM so it can't
+   interfere with the editor. Static trusted content only.
+   ========================================================= */
+(function () {
+	function init() {
+		if (document.getElementById("nuLegalBtn")) return;
+
+		var content =
+			"<h1 style='font-size:1.7rem;margin:0 0 .15rem'>Nu!</h1>" +
+			"<p style='color:#8b8b97;font-size:.9rem;margin:0 0 1rem'>A browser-based code editor. Beta.</p>" +
+
+			"<h2>About</h2>" +
+			"<p>Nu! is a code editor and live-preview playground that runs entirely in your web browser. You write HTML, CSS, and JavaScript, organize work into projects and tabs, and see the result render instantly.</p>" +
+			"<p>It is <b>local-first</b>: no account, no login, no server storing your work. Everything you create is saved in your own browser (IndexedDB) and stays on your device unless you export it.</p>" +
+			"<p>Built with vanilla JavaScript and open-source libraries (Monaco, Dexie, JSZip, jQuery) loaded from public CDNs.</p>" +
+			"<p style='background:#232329;border:1px solid #34343c;border-radius:.5rem;padding:.8rem 1rem'>Nu! is beta software, free and as-is. Keep your own backups of anything important (use Export to download your projects).</p>" +
+
+			"<h2>Privacy</h2>" +
+			"<h3>What we collect</h3>" +
+			"<p>The Nu! site itself collects nothing — no accounts, analytics, tracking, cookies, or telemetry. We never receive or store the code or projects you create.</p>" +
+			"<h3>Where your data lives</h3>" +
+			"<p>Your projects, tabs, code, and settings are stored locally in your browser's IndexedDB on the device you're using. Clearing site data, or using a private/incognito window, can remove or prevent that storage — so your projects can disappear if you clear site data.</p>" +
+			"<h3>Third parties</h3>" +
+			"<p>Because Nu! runs in your browser, some requests go to third parties with their own privacy practices we don't control:</p>" +
+			"<ul>" +
+			"<li><b>CDNs</b> (jsDelivr, cdnjs) serve the open-source libraries; your browser contacts them, which can see your IP and basic request info.</li>" +
+			"<li><b>Code you run.</b> The preview executes your project's HTML/CSS/JS. If your code loads external resources or embeds a service (e.g. a YouTube player), your browser contacts those services directly, subject to <i>their</i> terms.</li>" +
+			"<li><b>GitHub Pages</b> hosts this site; standard server request logs may apply per GitHub's policies.</li>" +
+			"</ul>" +
+			"<h3>Children</h3>" +
+			"<p>Nu! is not directed to children and knowingly collects no personal information from anyone — it collects none at all.</p>" +
+
+			"<h2>Terms of Use</h2>" +
+			"<h3>Acceptance</h3>" +
+			"<p>By using Nu! you agree to these terms. If you don't agree, please don't use it.</p>" +
+			"<h3>Your content and conduct</h3>" +
+			"<p>You keep all rights to what you create, and you're solely responsible for what you write and run, and for having the right to use any code, assets, or services you include. Don't use Nu! for anything unlawful, malicious, or infringing, or to harm others or their systems.</p>" +
+			"<h3>Code execution and security</h3>" +
+			"<p>The preview runs code in your browser, in the same context as the editor, so it can access the data Nu! stores locally. Only run code you trust. Do not import or run projects from sources you don't trust — they may read or modify your locally stored projects.</p>" +
+			"<h3>No warranty</h3>" +
+			"<p>Nu! is provided \"as is\" and \"as available\", without warranties of any kind. We don't warrant it will be uninterrupted, error-free, or that your locally stored data will be preserved.</p>" +
+			"<h3>Limitation of liability</h3>" +
+			"<p>To the maximum extent permitted by law, the operator of Nu! is not liable for any loss of data or for any indirect, incidental, or consequential damages arising from your use of Nu!. Because your work is stored only in your browser, <b>you are responsible for backing it up.</b></p>" +
+			"<h3>Changes</h3>" +
+			"<p>These terms and the service may change at any time. Continued use after a change means you accept the updated terms.</p>" +
+			"<h3>Contact</h3>" +
+			"<p>Questions: <a style='color:#8ab4ff' href='mailto:CONTACT@EXAMPLE.COM'>CONTACT@EXAMPLE.COM</a></p>" +
+			"<p style='color:#777783;font-size:.85rem;margin-top:1.5rem'>Operated by [OPERATOR]. Governed by the laws of [JURISDICTION]. Last updated: [DATE]. Replace the bracketed placeholders before publishing.</p>";
+
+		// Trigger button
+		var btn = document.createElement("button");
+		btn.id = "nuLegalBtn";
+		btn.type = "button";
+		btn.textContent = "About \u0026 Legal";
+		btn.setAttribute("style",
+			"position:fixed;right:.6rem;bottom:.6rem;z-index:90;" +
+			"font:12px system-ui,sans-serif;color:#bfbfca;background:#232329;" +
+			"border:1px solid #3a3a44;border-radius:1rem;padding:.3rem .7rem;" +
+			"cursor:pointer;opacity:.5;transition:opacity .15s");
+		btn.onmouseenter = function () { btn.style.opacity = "1"; };
+		btn.onmouseleave = function () { btn.style.opacity = ".5"; };
+
+		// Overlay + modal
+		var overlay = document.createElement("div");
+		overlay.setAttribute("style",
+			"position:fixed;inset:0;z-index:100000;display:none;" +
+			"align-items:flex-start;justify-content:center;padding:3vh 1rem;" +
+			"background:rgba(0,0,0,.6)");
+
+		var modal = document.createElement("div");
+		modal.setAttribute("style",
+			"max-width:44rem;width:100%;max-height:94vh;overflow:auto;" +
+			"background:#1b1b1f;color:#e6e6ea;border:1px solid #34343c;" +
+			"border-radius:.6rem;padding:1.5rem 1.5rem 2.5rem;position:relative;" +
+			"font:16px/1.6 system-ui,-apple-system,sans-serif");
+		modal.innerHTML =
+			"<style>" +
+			"#nuLegalModal h2{font-size:1.25rem;margin:1.8rem 0 .4rem;padding-top:.5rem;border-top:1px solid #34343c}" +
+			"#nuLegalModal h3{font-size:1rem;margin:1.2rem 0 .3rem;color:#c9c9d4}" +
+			"#nuLegalModal p,#nuLegalModal li{color:#cfcfd8}" +
+			"#nuLegalModal ul{padding-left:1.2rem}" +
+			"</style>" +
+			"<button type='button' id='nuLegalClose' aria-label='Close' style='position:absolute;top:.6rem;right:.8rem;background:none;border:none;color:#bbb;font-size:1.6rem;line-height:1;cursor:pointer'>\u00d7</button>" +
+			"<div id='nuLegalModal'>" + content + "</div>";
+
+		overlay.appendChild(modal);
+
+		function open() { overlay.style.display = "flex"; }
+		function close() { overlay.style.display = "none"; }
+
+		btn.onclick = open;
+		overlay.addEventListener("click", function (e) { if (e.target === overlay) close(); });
+		document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+		modal.querySelector("#nuLegalClose").onclick = close;
+
+		document.body.appendChild(btn);
+		document.body.appendChild(overlay);
+	}
+
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", init);
+	} else {
+		init();
+	}
+})();
 
 
 /* ======== helper.js ======== */
@@ -4296,8 +4405,27 @@ $(function() {
 	
 	async function loaded(){
 		boss.iframeB.addD(document.getElementsByClassName("iframeP")[0])
-		await boss.dbBoss.loaded()
-		
+		try{
+			await boss.dbBoss.loaded()
+		}catch(e){
+			showDbUnavailable(e)
+		}
+	}
+
+	function showDbUnavailable(e){
+		LOG(e)
+		var d = document.createElement("div")
+		d.setAttribute("style","position:fixed;inset:0;z-index:99999;display:flex;"
+			+"align-items:center;justify-content:center;padding:2em;background:#1e1e1e;"
+			+"color:#eee;font:16px/1.6 system-ui,-apple-system,sans-serif;text-align:center")
+		var inner = document.createElement("div")
+		inner.style.maxWidth = "34em"
+		inner.textContent = "Nu! needs in-browser storage (IndexedDB) to load your "
+			+ "projects, and it isn't available right now. This usually happens in "
+			+ "private / incognito windows, or when site data is blocked. Try a normal "
+			+ "window, or allow storage for this site, then reload."
+		d.appendChild(inner)
+		document.body.appendChild(d)
 	}
 	
 	
