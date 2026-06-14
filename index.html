@@ -483,6 +483,17 @@ window.LOG = function () {
      sandy.mainCListen.add/rm(obj)    -> outside-click registry
      sandy.setupSrhD(d, obj)          -> search-input UI bound to obj.srh
    ========================================================= */
+/* HTML-escape user-supplied strings before interpolating into markup.
+   Used wherever project/tab/file names are built into HTML in the app shell. */
+window.escHtml = function (s) {
+	return String(s == null ? "" : s)
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
+};
+
 var sandy = {
 
 	/* Create a <div> with the given classes, append to parent, return it ($). */
@@ -2030,7 +2041,7 @@ boss.setupMainTabs = function(){
 		getTabTxt:function(name){
 			return "<div class='wFit  flex alignMe colWhite bor ulBor noBorCol pad0p2em padL1em hlBor mainTab nu'>"
 				+"<div class='nameC wFit pad0p2em maxW20em scrollX'>"
-					+"<input class='inp noBor colWhite  hFit fs1p5em bgTran minW3em w3em ' type='text' value='"+name+"'>"
+					+"<input class='inp noBor colWhite  hFit fs1p5em bgTran minW3em w3em ' type='text' value='"+escHtml(name)+"'>"
 				+"</div>"
 				+"<div class='exit flexMe hlIcon'>"+icons.getX("1em")+"</div>"
 			+"</div>"
@@ -2351,7 +2362,7 @@ boss.setupLeftM = function(d){
 			boss.setupDlFiles(this.addD(d,icons.getDownloadFile(s),"Download Html/js/css files"))
 		},
 		addD:function(d,icon,title){
-			d.append("<div class='h3em w3em flexMe cursor hlIcon nu' title='"+title+"'>"
+			d.append("<div class='h3em w3em flexMe cursor hlIcon nu' title='"+escHtml(title)+"'>"
 				+icon
 			+"</div>")
 			return d.find(".nu").removeClass("nu")
@@ -3175,7 +3186,7 @@ boss.setupJsTabs = function(){
 		getJsTabTxt:function(name){
 			return "<div class='wFit  flex alignMe colWhite bor ulBor noBorCol pad0p2em padL1em hlBor jsTab nu'>"
 				+"<div class='nameC wFit pad0p2em maxW20em scrollX'>"
-					+"<input class='inp noBor colWhite  hFit fs1em bgTran minW3em w3em ' type='text' value='"+name+"'>"
+					+"<input class='inp noBor colWhite  hFit fs1em bgTran minW3em w3em ' type='text' value='"+escHtml(name)+"'>"
 				+"</div>"
 				+"<div class='exit flexMe hlIcon'>"+icons.getX("1em")+"</div>"
 			+"</div>"
@@ -3653,7 +3664,7 @@ boss.setupMainSrh = function(icon){
 				getDivTxt:function(icon,name){
 					return "<div class='flex alignMe pad0p2em hlBlue cursor nu'>"
 						+"<div class='flexMe'>"+icon+"</div>"
-						+"<div class='marL0p1em'>"+name+"</div>"
+						+"<div class='marL0p1em'>"+escHtml(name)+"</div>"
 					+"</div>"
 				},
 				
@@ -4552,7 +4563,7 @@ boss.iframeB = {d:"",code:"",
 		
 		$(d).append("<div class='w0 h0'><div class='pad1em grab wFit'><div class='w30em h17em minH10em minW14em flex column bgDark  bor cont borCol31'>"
 			+"<div class='overlayD '></div>"
-			+"<iframe  src='"+window.IFRAME_URL+"' class='w100p h100p iframe noBor' ></iframe>"
+			+"<iframe  src='"+window.IFRAME_URL+"' sandbox='allow-scripts allow-modals allow-popups allow-forms allow-downloads' class='w100p h100p iframe noBor' ></iframe>"
 		+"</div></div></div>")
 		this.d = $(d).find(".iframe")
 	
